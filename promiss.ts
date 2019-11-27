@@ -15,19 +15,29 @@ function isFunction (target) {
 }
 
 function subscribe(promiss: Promiss, child: Promiss,onResolved: Function, onRejected: Function) {
-  promiss.subscribe[PromissState.FULFILLED] = onResolved;
-  promiss.subscribe[PromissState.REJECTED] = onRejected;
-  promiss.child = child;
+  promiss.subscribe[PromissState.PENDING].push(child);
+  promiss.subscribe[PromissState.FULFILLED].push(onResolved);
+  promiss.subscribe[PromissState.REJECTED].push(onRejected);
 }
 
 function publish(promiss: Promiss) {
   const state = promiss.state;
-  const callback = promiss.subscribe[state];
-  const nextValue = isFunction(callback) ? callback(promiss.value) : promiss.value;
-  const nextValueIsPromiss = nextValue instanceof Promiss;
+  if (state === PromissState.PENDING) return;
+  const callbacks = promiss.subscribe[state];
+  const childs = promiss.subscribe[0];
+  for (let i = 0, len = callbacks.length; i < len; i += 1) {
+    const callback =callbacks[i];
+    const nextValue = isFunction(callback) ? callback(promiss.value) : promiss.value;
+    const nextValueIsPromiss = nextValue instanceof Promiss;
+    const child = childs[i];
 
-  if (state === PromissState.FULFILLED && !nextValueIsPromiss && promiss.child) {
-    resolve(promiss.child, nextValue)
+    if (child && state === PromissState.FULFILLED) {
+      if (nextValueIsPromiss) {
+      }
+      else {
+        resolve(child, nextValue)
+      }
+    }
   }
 }
 
@@ -59,12 +69,11 @@ function executeInitila(promiss: Promiss, initial: InitialFunction) {
 export class Promiss {
   state: PromissState;
   value: any;
-  subscribe: Function[];
-  child: Promiss;
+  subscribe: [Promiss[], Function[], Function[]];
 
   constructor(initial: InitialFunction) {
     this.state = PromissState.PENDING;
-    this.subscribe = [];
+    this.subscribe = [[], [] ,[]];
     executeInitila(this, initial);
   }
 

@@ -1,0 +1,15 @@
+{
+  "name": "ts-promise",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "parcel": "^1.12.4"
+  },
+  "scripts": {
+    "start": "parcel index.html"
+  },
+  "devDependencies": {
+    "typescript": "^3.7.2"
+  }
+}

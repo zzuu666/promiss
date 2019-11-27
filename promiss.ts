@@ -8,14 +8,27 @@ enum PromissState {
   REJECTED = 2,
 }
 
-function subscribe(promiss: Promiss, state: PromissState, callback: Function) {
-  promiss.subscribe[state] = callback;
+function noop () {}
+
+function isFunction (target) {
+  return Object.prototype.toString.call(target) === '[object Function]';
+}
+
+function subscribe(promiss: Promiss, child: Promiss,onResolved: Function, onRejected: Function) {
+  promiss.subscribe[PromissState.FULFILLED] = onResolved;
+  promiss.subscribe[PromissState.REJECTED] = onRejected;
+  promiss.child = child;
 }
 
 function publish(promiss: Promiss) {
   const state = promiss.state;
   const callback = promiss.subscribe[state];
-  callback(promiss.value);
+  const nextValue = isFunction(callback) ? callback(promiss.value) : promiss.value;
+  const nextValueIsPromiss = nextValue instanceof Promiss;
+
+  if (state === PromissState.FULFILLED && !nextValueIsPromiss && promiss.child) {
+    resolve(promiss.child, nextValue)
+  }
 }
 
 function resolve(promiss, value) {
@@ -47,6 +60,7 @@ export class Promiss {
   state: PromissState;
   value: any;
   subscribe: Function[];
+  child: Promiss;
 
   constructor(initial: InitialFunction) {
     this.state = PromissState.PENDING;
@@ -54,12 +68,15 @@ export class Promiss {
     executeInitila(this, initial);
   }
 
-  then(resolveHanlde: ResolveHandle, rejectHandle?) {
-    // const child = this.constructor();
+  then(resolveHanlde?: ResolveHandle, rejectHandle?) {
+    const child = new Promiss(noop);
+
     if (this.state === PromissState.PENDING) {
-      subscribe(this, PromissState.FULFILLED, resolveHanlde);
-      subscribe(this, PromissState.REJECTED, rejectHandle);
+      subscribe(this, child, resolveHanlde, rejectHandle);
     }
+
+
+    return child;
   }
 
   catch(errorHandle) {}
